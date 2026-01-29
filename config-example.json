@@ -1,0 +1,97 @@
+{
+	"event_name": "ACC: UC",
+
+	"paths": {
+		"root": "(full path)/root",
+		"zipfiles": "(full path)/zipfiles",
+		"foolish_pics": "(full path)/foolish_pics",
+		"log_file": "(full path)/debug.log",
+
+		"radio": "(full path)/radio",
+		"chartpacks": "(full path)/chartpacks"
+	},
+
+	"preparation": {
+		"no_root_found": "create",
+		"cleaning_root": "force",
+		"nonzip_items": "forbid"
+	},
+
+	"songlist": {
+		"accepts": ["songlist", "songlist.txt", "songlist.json"],
+		"normalize_to": "songlist",
+
+		"choosing": "by_priority",
+		"tail_comma": "allow",
+
+		"do_digest_check": false,
+
+		"fixed_fields": {
+			"set": "accuc",
+			"purchase": "accuc",
+			"date": 1723456890,
+			"version": "1.2 accuc Act II",
+
+			"comment": "stdslstgen.js"
+		},
+
+		"sides": [0, 1, 2, 3],
+
+		"ratings": [-1, 0, 8, 9, 10, 11, 12, 13],
+		"ratings_with_plus": [8, 9, 10, 11, 12],
+		"rating_classes": [0, 1, 2, 3, 4],
+
+		"custom_string_max_lines": 5,
+		"custom_string_max_line_length": 30
+	},
+
+	"chartpack": {
+		"covers": {
+			"accepts": [
+				"{}.jpg", "{}_256.jpg", "1080_{}.jpg", "1080_{}_256.jpg"
+			],
+			"normalize_to": {
+				"1080_{}.jpg": [768, 768],
+				"1080_{}_256.jpg": [384, 384]
+			},
+			"preset_foolish_pics": {
+				"id_example": "pic path here"
+			}
+		},
+		"audio": {
+			"sampling_rate": 44100,
+			"time_range": ["1:45.000", "1:50.999"],
+			"fade_in_duration": "0:01.000",
+			"fade_out_duration": "0:01.000"
+		},
+		"aff": {
+			"tpdf_range": [0.5, 2.0]
+		},
+		"bgs": {
+			"size": [1920, 1440]
+		},
+		"hitsounds": {
+			"sampling_rate": 44100
+		},
+
+		"songlist": {
+			"masking": {
+				"artist": "SZANluvSWK",
+				"bpm": "wys0318",
+				"song_title": "{event_name} Chart {live_id}"
+			}
+		}
+	},
+
+	"livestream": {
+		"sessions": 2
+	},
+	"guessletter": {
+		"max_per_dict": 10
+	},
+
+	"technical": {
+		"digest_salts": ["aaf2022", "acc2022", "aafsc", "accai", "aafb2o", "accces", "aafsp", "accuc"],
+		"file_edit_time": 3383248860
+	}
+}

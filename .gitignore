@@ -1,0 +1,4 @@
+.venv/
+devtest/
+test.py
+config.json
