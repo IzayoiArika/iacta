@@ -84,7 +84,7 @@ class Chartpack:
 		raise ValueError(f'No event info is provided')
 
 	@property
-	def category(self) -> Literal['A', 'B', 'C']:
+	def category(self) -> Literal['A', 'B']:
 		if self.event_info and self.event_info.category:
 			return self.event_info.category
 		raise ValueError(f'No category info is provided')
@@ -134,7 +134,7 @@ class Chartpack:
 				bar.update()
 
 	def solve_category(self) -> None:
-		self.event_info.category = 'B' if self.is_bonus else ('C' if len(self.event_info.charters) >= 2 else 'A')
+		self.event_info.category = 'B' if self.is_bonus else 'A'
 
 	################################################################################################################
 

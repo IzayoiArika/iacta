@@ -3,8 +3,10 @@ import os
 import random
 from typing import Any, Literal
 
+from mortis import Difficulty, RatingClassEnum
+
 from iacta.steps.asciify import export_guessletter_titles
-from iacta.steps.radio import get_diff_title
+from iacta.steps.radio import get_diff_artist, get_diff_title
 from iacta.types.chartpack import Chartpack
 from iacta.types.config import Config
 from iacta.utils import random_distribute
@@ -19,6 +21,18 @@ def save_event_info(chartpacks: list[Chartpack]) -> None:
 			for chartpack in chartpacks
 		}, f, ensure_ascii=False, indent=4)
 
+def get_diff_abbrev(rtcls: RatingClassEnum) -> str:
+	return {
+		RatingClassEnum.Past: 'PST',
+		RatingClassEnum.Present: 'PRS',
+		RatingClassEnum.Future: 'FTR',
+		RatingClassEnum.Beyond: 'BYD',
+		RatingClassEnum.Eternal: 'ETR'
+	}[rtcls]
+
+def get_diff_str(diff: Difficulty) -> str:
+	return f'[{get_diff_abbrev(diff.rating_class)}] {diff.rating}' + ('+' if diff.rating_plus else '')
+
 
 def get_csv_title_params() -> list[Any]:
 	return [
@@ -28,23 +42,38 @@ def get_csv_title_params() -> list[Any]:
 		'难度',
 		'谱师名义',
 		'参赛谱师',
-		'所属组别',
 	]
 
 def get_csv_lines_params(chartpack: Chartpack) -> list[list[Any]]:
 	all_params = []
 	songlist = chartpack.songlist
 	event_info = chartpack.event_info
+	last_title = ''
+	last_artist = ''
 	for i, diff in enumerate(songlist.difficulties.all_activated):
-		params = []
-		# bug fix: write contents
-		if i:
-			params.extend(['', '', ''])
-		else:
-			params.append(event_info.live_id)
-			params.append(get_diff_title(songlist, diff.rating_class))
-			params.append(songlist.artist)
+		live_id = '' if i else event_info.live_id
 
+		title = get_diff_title(songlist, diff.rating_class)
+		if title == last_title:
+			title = ''
+		else:
+			last_title = title
+
+		artist = get_diff_artist(songlist, diff.rating_class)
+		if artist == last_artist:
+			artist = ''
+		else:
+			last_artist = artist
+
+		difficulty = get_diff_str(diff)
+		chart_designer = diff.chart_designer
+		actual_charter = '+'.join(event_info.charters)
+
+		params = [
+			live_id, title, artist, difficulty,
+			chart_designer, actual_charter, 
+		]
+		
 		all_params.append(params)
 	return all_params
 
@@ -53,6 +82,7 @@ def export_info_csv(chartpacks: list[Chartpack]) -> None:
 	config = Config.instance
 
 	params = []
+	chartpacks.sort(key=lambda cp: cp.event_info.live_id)
 	for chartpack in chartpacks:
 		params.extend(get_csv_lines_params(chartpack))
 
@@ -72,7 +102,7 @@ def process_chartpacks_info(chartpacks: list[Chartpack]) -> None:
 	copied = chartpacks[:]
 	random.shuffle(copied)
 
-	categorized: dict[Literal['A', 'B', 'C'], list[Chartpack]] = {k: [] for k in ('A', 'B', 'C')}
+	categorized: dict[Literal['A', 'B'], list[Chartpack]] = {k: [] for k in ('A', 'B')}
 	for chartpack in copied:
 		categorized[chartpack.category].append(chartpack)
 	

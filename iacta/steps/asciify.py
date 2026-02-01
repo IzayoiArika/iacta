@@ -1,7 +1,7 @@
-from collections.abc import Callable
 import json
-from math import ceil
 import os
+from collections.abc import Callable
+from math import ceil
 
 from mortis import Difficulty, SonglistItem
 

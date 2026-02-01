@@ -80,7 +80,8 @@ def assign_random_cover(chartpack: Chartpack, dst_path: str, choices: list[str])
 			dst_name = template.build(RatingClassEnumExt.Base.value)
 			dst = os.path.join(dst_path, dst_name)
 
-			resized.save(dst, format='JPEG')
+			converted = resized.convert('RGB')
+			converted.save(dst, format='JPEG')
 
 def mask_songlist(chartpack: Chartpack) -> SonglistItem:
 	config = Config.instance

@@ -15,7 +15,7 @@ class EventInfoItem(SonglistPartModel):
 		return self
 
 	live_session: int | None = None
-	category: Literal['A', 'B', 'C'] | None = None
+	category: Literal['A', 'B'] | None = None
 	category_idx: int | None = None
 
 	@property

@@ -7,7 +7,6 @@ from iacta.steps.unzip import unzip_chartpacks
 from iacta.steps.chartpack import deduplicate_ids, get_chartpacks
 from iacta.types.config import Config
 
-
 def main():
 	"""主程序入口，负责调用各个步骤的函数完成整体流程。勿修改。仅当前一步骤无异常时继续执行下一步骤。"""
 
