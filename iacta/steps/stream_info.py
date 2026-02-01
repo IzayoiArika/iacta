@@ -3,11 +3,10 @@ import os
 import random
 from typing import Any, Literal
 
-from iacta.logging import dbglogger
 from iacta.steps.asciify import export_guessletter_titles
+from iacta.steps.radio import get_diff_title
 from iacta.types.chartpack import Chartpack
 from iacta.types.config import Config
-from iacta.types.misc import ExtRatingClassEnum, RatingClassEnumExt
 from iacta.utils import random_distribute
 
 
@@ -26,15 +25,25 @@ def get_csv_title_params() -> list[Any]:
 		'编号',
 		'曲名',
 		'曲师',
-		'谱师名义',
 		'难度',
+		'谱师名义',
+		'参赛谱师',
+		'所属组别',
 	]
 
 def get_csv_lines_params(chartpack: Chartpack) -> list[list[Any]]:
 	all_params = []
-	for diff in chartpack.songlist.difficulties.all_activated:
+	songlist = chartpack.songlist
+	event_info = chartpack.event_info
+	for i, diff in enumerate(songlist.difficulties.all_activated):
 		params = []
-
+		# bug fix: write contents
+		if i:
+			params.extend(['', '', ''])
+		else:
+			params.append(event_info.live_id)
+			params.append(get_diff_title(songlist, diff.rating_class))
+			params.append(songlist.artist)
 
 		all_params.append(params)
 	return all_params

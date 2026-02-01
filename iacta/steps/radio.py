@@ -1,7 +1,6 @@
 import os
 import shutil
 
-from PIL import Image
 from tqdm import tqdm
 from mortis import SonglistItem
 
@@ -17,6 +16,13 @@ def get_diff_title(songlist: SonglistItem, extcls: ExtRatingClassEnum) -> str:
 		songlist.title_localized.en
 		if extcls == RatingClassEnumExt.Base else
 		songlist.difficulties[extcls].title_localized.en # type: ignore
+	)
+
+def get_diff_artist(songlist: SonglistItem, extcls: ExtRatingClassEnum) -> str:
+	return (
+		songlist.artist
+		if extcls == RatingClassEnumExt.Base else
+		songlist.difficulties[extcls].artist # type: ignore
 	)
 
 def collect_radio_files(chartpacks: list[Chartpack]) -> None:

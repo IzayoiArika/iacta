@@ -215,8 +215,9 @@ class Chartpack:
 
 		raw = raw.strip()
 		strat = config.songlist.tail_comma
-		if strat == 'allow' and raw.endswith(','):
-			raw = raw[:-1]
+		if strat == 'allow':
+			if raw.endswith(','):
+				raw = raw[:-1]
 		elif strat == 'forbid':
 			pass
 		elif strat == 'require':
@@ -374,13 +375,13 @@ class Chartpack:
 			name, ext = os.path.splitext(basename)
 			dst_name = f'{name}.wav'
 			new_hitsound = HitsoundStr(dst_name)
-
-			if new_hitsound in self.hitsounds:
-				self.errors.add(basename, f'Failed to rename to {dst_name}: already exists')
-				continue
 			
 			if ext == '.wav':
 				# No need to rename
+				continue
+
+			if new_hitsound in self.hitsounds:
+				self.errors.add(basename, f'Failed to rename to {dst_name}: already exists')
 				continue
 			
 			src = os.path.join(self.root, basename)

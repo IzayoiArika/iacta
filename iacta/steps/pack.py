@@ -2,7 +2,6 @@ import json
 import os
 import random
 import shutil
-from zipfile import ZipFile
 
 from PIL import Image
 
