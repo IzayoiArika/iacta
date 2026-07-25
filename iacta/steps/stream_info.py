@@ -1,7 +1,8 @@
+import csv
 import json
 import os
 import random
-from typing import Any, Literal
+from typing import Any
 
 from mortis import Difficulty, RatingClassEnum
 
@@ -9,6 +10,7 @@ from iacta.steps.asciify import export_guessletter_titles
 from iacta.steps.radio import get_diff_artist, get_diff_title
 from iacta.types.chartpack import Chartpack
 from iacta.types.config import Config
+from iacta.types.event_info import CHART_CATEGORIES, ChartCategory
 from iacta.utils import random_distribute
 
 
@@ -45,7 +47,7 @@ def get_csv_title_params() -> list[Any]:
 	]
 
 def get_csv_lines_params(chartpack: Chartpack) -> list[list[Any]]:
-	all_params = []
+	all_params: list[list[Any]] = []
 	songlist = chartpack.songlist
 	event_info = chartpack.event_info
 	last_title = ''
@@ -66,10 +68,10 @@ def get_csv_lines_params(chartpack: Chartpack) -> list[list[Any]]:
 			last_artist = artist
 
 		difficulty = get_diff_str(diff)
-		chart_designer = diff.chart_designer
+		chart_designer = diff.chart_designer.replace('\n', '\\n')
 		actual_charter = '+'.join(event_info.charters)
 
-		params = [
+		params: list[Any] = [
 			live_id, title, artist, difficulty,
 			chart_designer, actual_charter, 
 		]
@@ -87,13 +89,10 @@ def export_info_csv(chartpacks: list[Chartpack]) -> None:
 		params.extend(get_csv_lines_params(chartpack))
 
 	csv_path = os.path.join(config.paths.root, 'answersheet_template.csv')
-	with open(csv_path, 'w', encoding='utf-8') as f:
-		title_params = get_csv_title_params()
-		lines: list[str] = [','.join(title_params)]
-		for line_params in params:
-			line = ','.join(map(str, line_params))
-			lines.append(line)
-		f.write('\n'.join(lines))
+	with open(csv_path, 'w', encoding='utf-8', newline='') as f:
+		csv_writer = csv.writer(f)
+		data = [get_csv_title_params()] + params
+		csv_writer.writerows(data)
 
 
 def process_chartpacks_info(chartpacks: list[Chartpack]) -> None:
@@ -102,7 +101,7 @@ def process_chartpacks_info(chartpacks: list[Chartpack]) -> None:
 	copied = chartpacks[:]
 	random.shuffle(copied)
 
-	categorized: dict[Literal['A', 'B'], list[Chartpack]] = {k: [] for k in ('A', 'B')}
+	categorized: dict[ChartCategory, list[Chartpack]] = {k: [] for k in CHART_CATEGORIES}
 	for chartpack in copied:
 		categorized[chartpack.category].append(chartpack)
 	

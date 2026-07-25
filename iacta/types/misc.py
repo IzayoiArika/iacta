@@ -148,8 +148,8 @@ class DurationMs(int):
 				raise ValueError(f'Seconds should be finite and nonnegative')
 			duration = hrs * 360_0000 + mins * 6_0000 + int(secs * 1000)
 		
-		if duration <= 0:
-			raise ValueError(f'Value must be positive')
+		if duration < 0:
+			raise ValueError(f'Value must be non-negative')
 		
 		return super().__new__(cls, duration)
 	

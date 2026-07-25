@@ -1,3 +1,4 @@
+import json
 import os
 from os import DirEntry
 from typing import Literal
@@ -9,11 +10,11 @@ from pydub import AudioSegment
 from PIL import Image
 
 from iacta.types.config import Config
-from iacta.types.event_info import EventInfoItem
+from iacta.types.event_info import ChartCategory, EventInfoItem, SubmitInfoItem
 from iacta.types.exceptions.general import MultipleExceptions, UnreachableBranch
 from iacta.types.exceptions.file import AmbiguousSonglistError, BadChartpackError, MissingSonglistError, PathNotFoundError
 from iacta.types.misc import DurationMs, ExtRatingClassEnum as ExtRtcls, RatingClassEnumExt
-from iacta.types.songlist.extmodel import SpSonglistItem
+from iacta.types.songlist.digest import get_digest
 from iacta.utils import pick_biggest_image
 
 
@@ -73,7 +74,6 @@ class Chartpack:
 			self.process_all()
 			if self.errors:
 				raise self.errors
-			self.solve_category()
 		except Exception as e:
 			raise BadChartpackError(self.root, e)
 
@@ -84,7 +84,7 @@ class Chartpack:
 		raise ValueError(f'No event info is provided')
 
 	@property
-	def category(self) -> Literal['A', 'B']:
+	def category(self) -> ChartCategory:
 		if self.event_info and self.event_info.category:
 			return self.event_info.category
 		raise ValueError(f'No category info is provided')
@@ -119,7 +119,7 @@ class Chartpack:
 
 	def process_all(self) -> None:
 		steps = {
-			'songlist': self.process_songlist,
+			'songlist / 提交信息': self.process_metadata,
 			'AFF / 特殊音频': self.process_affs,
 			'曲绘': self.process_covers,
 			'音源': self.process_audios,
@@ -133,26 +133,23 @@ class Chartpack:
 				step()
 				bar.update()
 
-	def solve_category(self) -> None:
-		self.event_info.category = 'B' if self.is_bonus else 'A'
-
 	################################################################################################################
 
-	def process_songlist(self) -> None:
-		self.reset_songlist()
-		self.find_songlist()
-		self.load_songlist()
-		# self.check_songlist()  # auto-checked by Pydantic models
-		self.normalize_songlist()
+	def process_metadata(self) -> None:
+		self.reset_metadata()
+		self.find_metadata()
+		self.load_metadata()
+		self.check_metadata()
+		self.normalize_metadata()
 	
-	def reset_songlist(self) -> None:
-		for attr in ['songlist_path', 'songlist', 'event_info']:
+	def reset_metadata(self) -> None:
+		for attr in ['songlist_path', 'songlist', 'metadata']:
 			try:
 				delattr(self, attr)
 			except AttributeError:
 				pass
 
-	def find_songlist(self) -> None:
+	def find_metadata(self) -> None:
 		config = Config.instance
 
 		self.songlist_name: str
@@ -203,11 +200,10 @@ class Chartpack:
 		else:
 			raise UnreachableBranch
 	
-	def load_songlist(self) -> None:
+	def load_metadata(self) -> None:
 		config = Config.instance
 
 		self.songlist: SonglistItem
-		self.event_info: EventInfoItem
 	
 		songlist_path = os.path.join(self.root, self.songlist_name)
 		with open(songlist_path, 'r', encoding='utf-8') as f:
@@ -227,11 +223,53 @@ class Chartpack:
 		else:
 			raise UnreachableBranch
 
-		sp_songlist = SpSonglistItem.loads(raw)
-		self.songlist = sp_songlist.norm_songlist()
-		self.event_info = sp_songlist.event_info
+		self.songlist = SonglistItem.loads(raw)
 
-	def normalize_songlist(self) -> None:
+		metadata_path = os.path.join(self.root, config.chartpack.metadata_name)
+		with open(metadata_path, 'r', encoding='utf-8') as f:
+			raw = f.read()
+
+		raw_metadata = SubmitInfoItem.model_validate_json(raw)
+		category = 'A'
+		if raw_metadata.isCollaboration:
+			category = 'C'
+		if raw_metadata.isBonus:
+			# bonus charts are always considered as category B, regardless of the collaboration status
+			category = 'B'
+
+		self.event_info: EventInfoItem = EventInfoItem(
+			charters = raw_metadata.charters,
+			digest = raw_metadata.songlistDigest,
+			category = category,
+		)
+
+	def check_metadata(self) -> None:
+		config = Config.instance
+
+		for field in ['pack', 'purchase', 'date', 'version']:
+			songlist_field = getattr(self.songlist, field)
+			config_field = getattr(config.songlist.fixed_fields, field)
+			if songlist_field != config_field:
+				self.errors.add(field, ValueError(f'Field \'{field}\' must be exactly {config_field!r}'))
+
+		for diff in self.songlist.difficulties.iter_difficulty():
+			diffname = diff.rating_class.name
+			if self.event_info.is_bonus:
+				continue
+				
+			rts = config.songlist.ratings_with_plus if diff.rating_plus else config.songlist.ratings
+			if diff.rating not in rts:
+				self.errors.add(diffname, ValueError(f'\'rating\' must be one of {rts} if ratingPlus is {diff.rating_plus!r}'))
+
+		if config.songlist.do_digest_check:
+			dumped = self.songlist.model_dump(by_alias=True)
+			raw_json = json.dumps(dumped, indent=5, ensure_ascii=False)
+			digest = get_digest(raw_json)
+			if self.event_info.digest != digest:
+				self.errors.add('digest', ValueError(f'Digest verification failed; should be {digest}'))
+
+
+	def normalize_metadata(self) -> None:
 		config = Config.instance
 		dst_name = config.songlist.normalize_to
 
@@ -339,9 +377,13 @@ class Chartpack:
 
 
 	def process_hitsounds(self) -> None:
+		config = Config.instance
+
 		self.reset_hitsounds()
 		self.find_hitsounds()
 		self.rename_hitsounds()
+		if config.technical.skip_audio_edition:
+			return
 		self.load_hitsounds()
 		self.normalize_hitsounds()
 		self.free_hitsounds()
@@ -589,6 +631,8 @@ class Chartpack:
 	
 	def normalize_audios(self) -> None:
 		config = Config.instance
+		if config.technical.skip_audio_edition:
+			return
 
 		for extcls, audio in self._audios_temp.items():
 			basename = self.audio_names[extcls]
@@ -602,6 +646,8 @@ class Chartpack:
 
 	def clip_preview(self) -> None:
 		config = Config.instance
+		if config.technical.skip_audio_edition:
+			return
 
 		for extcls, audio in self._audios_temp.items():
 			

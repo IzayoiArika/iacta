@@ -31,8 +31,6 @@ PurchaseStr = Annotated[str, AfterValidator(matches_config('purchase'))]
 DateTimestamp = Annotated[NonNegativeInt, AfterValidator(matches_config('date'))]
 VersionStr = Annotated[str, AfterValidator(matches_config('version'))]
 
-CommentStr = Annotated[str, AfterValidator(matches_config('comment'))]
-
 
 def ensure_custom_str(s: str) -> str:
 	config = Config.instance

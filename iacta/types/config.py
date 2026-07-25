@@ -1,4 +1,5 @@
 import json
+import os
 from typing import Literal, Self
 
 from pydantic import Field, NonNegativeInt as uint, PositiveFloat as posfloat, PositiveInt as posint, ValidationError, model_validator
@@ -12,6 +13,7 @@ from iacta.types.misc import DurationMs, ProjectBaseModel, TemplateStr
 
 
 class PathsConfig(ProjectBaseModel):
+	workspace: str
 	root: str
 	zipfiles: str
 	foolish_pics: str
@@ -22,6 +24,13 @@ class PathsConfig(ProjectBaseModel):
 
 	@model_validator(mode='after')
 	def _after_validation(self) -> Self:
+		for item in ['root', 'zipfiles', 'foolish_pics', 'log_file', 'radio', 'chartpacks']:
+			path = getattr(self, item)
+			if not os.path.isabs(path):
+				path = os.path.join(self.workspace, path)
+			path = os.path.normpath(path)
+			object.__setattr__(self, item, path)
+
 		Logger.redirect_file(self.log_file)
 		return self
 
@@ -31,8 +40,6 @@ class FixedFieldsConfig(ProjectBaseModel):
 	purchase: LowerAsciiId
 	date: uint
 	version: SingleLineStr
-
-	comment: str
 
 	def __getattr__(self, name):
 		if name == 'set':
@@ -114,11 +121,13 @@ class ChartpackConfig(ProjectBaseModel):
 	bgs: BackgroundsConfig
 	hitsounds: HitsoundsConfig
 	songlist: SonglistPackConfig
+	metadata_name: str = 'submit_info.json'
 
 
 class TechnicalConfig(ProjectBaseModel):
 	digest_salts: tuple[str, ...]
 	file_edit_time: posint
+	skip_audio_edition: bool = False
 
 
 class PreparationConfig(ProjectBaseModel):
