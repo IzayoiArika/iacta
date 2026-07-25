@@ -2,4 +2,4 @@
 devtest/
 test.py
 config.json
-__pycache__/
+/__pycache__/
