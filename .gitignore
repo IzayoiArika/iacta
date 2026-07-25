@@ -2,3 +2,4 @@
 devtest/
 test.py
 config.json
+__pycache__/
